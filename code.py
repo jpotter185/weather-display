@@ -47,6 +47,13 @@ wdt = microcontroller.watchdog
 wdt.timeout = WATCHDOG_TIMEOUT
 wdt.mode = WatchDogMode.RESET
 
+# Wi-Fi power saving makes the radio nap between packets: ~90ms ping and a
+# sluggish web workflow. The board is wall-powered, so keep the radio awake.
+try:
+    wifi.radio.power_management = wifi.PowerManagement.NONE
+except Exception as e:
+    print(f"Couldn't disable Wi-Fi power saving: {e}")
+
 pool = adafruit_connection_manager.get_radio_socketpool(wifi.radio)
 ssl_context = adafruit_connection_manager.get_radio_ssl_context(wifi.radio)
 requests = adafruit_requests.Session(pool, ssl_context)
