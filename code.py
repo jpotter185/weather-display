@@ -11,18 +11,10 @@ import rtc
 
 SSID = os.getenv("CIRCUITPY_WIFI_SSID")
 PASSWORD = os.getenv("CIRCUITPY_WIFI_PASSWORD")
-URL = os.getenv("OPEN_METEO_URL")
+URL = os.getenv("WEATHER_API_URL")
 WEATHER_PARAMS = (
-    f"latitude={os.getenv('LATITUDE')}"
-    f"&longitude={os.getenv('LONGITUDE')}"
-    f"&current=temperature_2m,apparent_temperature,is_day,weather_code,relative_humidity_2m"
-    f"&daily=temperature_2m_max,temperature_2m_min"
-    f"&hourly=uv_index,precipitation_probability"
-    f"&timezone=auto"
-    f"&forecast_days=1"
-    f"&wind_speed_unit=mph"
-    f"&temperature_unit=fahrenheit"
-    f"&precipitation_unit=inch"
+    f"lat={os.getenv('LATITUDE')}"
+    f"&lon={os.getenv('LONGITUDE')}"
 )
 BOARD_WIDTH = 64
 BOARD_HEIGHT = 32
@@ -50,26 +42,25 @@ def get_clock():
 def fetch_weather():
     try:
         print("Fetching weather")
-        with requests.get(f"{URL}?{WEATHER_PARAMS}") as response:
-            print("Fetched weather")
+        print(f"{URL}?{WEATHER_PARAMS}")
+        with requests.get(f"{URL}?{WEATHER_PARAMS}", headers={
+            "X-API-Key": os.getenv("API_KEY")
+        }) as response:
+            print(response.json())
             json_data = response.json()
-            current = json_data["current"]
-            daily = json_data["daily"]
-            hourly = json_data["hourly"]
-            current_hour = int(current["time"][11:13])
             return {
-                "current_temperature": round(current["temperature_2m"]),
-                "feels_like_temperature": round(current["apparent_temperature"]),
-                "is_day": current["is_day"],
-                "weather_code": current["weather_code"],
-                "humidity": round(current["relative_humidity_2m"]),
-                "min_temp": round(daily["temperature_2m_min"][0]),
-                "max_temp": round(daily["temperature_2m_max"][0]),
-                "precip_probability": round(hourly["precipitation_probability"][current_hour]),
-                "uv_index": round(hourly["uv_index"][current_hour]),
-                "tz_offset": json_data["utc_offset_seconds"] // 3600,
+                "current_temperature": round(json_data["current_temperature"]),
+                "feels_like_temperature": round(json_data["feels_like_temperature"]),
+                "is_day": json_data["is_day"],
+                "weather_code": json_data["weather_code"],
+                "humidity": round(json_data["humidity"]),
+                "min_temp": round(json_data["min_temp"]),
+                "max_temp": round(json_data["max_temp"]),
+                "precip_probability": round(json_data["precip_probability"]),
+                "uv_index": round(json_data["uv_index"]),
+                "tz_offset": json_data["tz_offset"],
             }
-    except OSError as e:
+    except (OSError, KeyError, ValueError) as e:
         print(f"Weather fetch failed: {e}")
         return None
 
@@ -104,13 +95,15 @@ def update_display(weather):
 
 def sync_ntp():
     synced = False
-    while not synced:
+    count = 0
+    while not synced and count < 10:
         try:
             rtc.RTC().datetime = ntp.datetime
             synced = True
             print("NTP synced")
         except OSError as e:
             print(f"NTP sync failed: {e}, retrying in 5s...")
+            count = count + 1
             time.sleep(5)
 
 def setup():
@@ -121,10 +114,11 @@ def setup():
     sync_ntp()
     if weather:
         update_display(weather)
-        current_time = get_clock()
-        matrixportal.set_text(current_time, index=0)
-        return current_time
-    return None
+    else:
+        matrixportal.set_text("Weather unavailable", index=2)
+    current_time = get_clock()
+    matrixportal.set_text(current_time, index=0)
+    return current_time
 
 ntp = None
 last_displayed_time = setup()
