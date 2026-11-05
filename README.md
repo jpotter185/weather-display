@@ -8,7 +8,8 @@ A CircuitPython weather display for the [Adafruit Matrix Portal S3](https://www.
 - Scrolling ticker with high/low temps, UV index, precipitation chance, humidity, and feels like temperature
 - 12-hour clock synced via NTP
 - Auto-detects timezone from weather API — no hardcoded offsets
-- Weather refreshes every 5 minutes, clock checks every 5 seconds, NTP re-syncs every 24 hours
+- Weather refreshes every 5 minutes, clock checks every second, NTP re-syncs every 24 hours (and whenever the UTC offset changes, e.g. DST)
+- Self-recovering: reconnects Wi-Fi, retries failed fetches every 30s, resets after ~5 min of failures, and a hardware watchdog resets the board if it hangs
 
 ## Display Layout
 
@@ -52,25 +53,46 @@ Install these libraries to the `lib/` folder on your `CIRCUITPY` drive. All are 
    cp code.py icons.py /Volumes/CIRCUITPY/
    ```
 
-3. Create a `settings.toml` file on the `CIRCUITPY` drive with your credentials:
+3. Copy `settings.toml.example` to `settings.toml` on the `CIRCUITPY` drive and fill in your values:
 
    ```toml
    CIRCUITPY_WIFI_SSID = "your_wifi_ssid"
    CIRCUITPY_WIFI_PASSWORD = "your_wifi_password"
-   OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast"
-   LATITUDE = "123.4"
-   LONGITUDE = "567.8"
+   WEATHER_API_URL = "https://your-weather-api.example.com/weather"
+   API_KEY = "your_api_key"
+   LATITUDE = "12.34"
+   LONGITUDE = "-56.78"
    ```
+
+   `settings.toml` is gitignored — never commit it.
 
 4. The board will auto-reload and start displaying weather.
 
 ## Weather API
 
-Uses [Open-Meteo](https://open-meteo.com/) — free, no API key required.
+`code.py` sends `GET {WEATHER_API_URL}?lat=...&lon=...` with an `X-API-Key` header and expects JSON like:
+
+```json
+{
+  "current_temperature": 61.2,
+  "feels_like_temperature": 60.8,
+  "is_day": 0,
+  "weather_code": 63,
+  "humidity": 95,
+  "min_temp": 60,
+  "max_temp": 65,
+  "precip_probability": 61,
+  "uv_index": 0,
+  "tz_offset": -5
+}
+```
+
+`weather_code` uses WMO codes and `tz_offset` is whole hours from UTC.
 
 ## Project Structure
 
 ```
-code.py       # main application
-icons.py      # pixel art weather icon drawing functions
+code.py               # main application
+icons.py              # pixel art weather icon drawing functions
+settings.toml.example # template for the device's settings.toml
 ```

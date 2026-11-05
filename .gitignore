@@ -1,0 +1,6 @@
+settings.toml
+.env
+._*
+.DS_Store
+.venv/
+__pycache__/
