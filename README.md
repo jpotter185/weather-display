@@ -10,6 +10,7 @@ A CircuitPython weather display for the [Adafruit Matrix Portal S3](https://www.
 - Auto-detects timezone from weather API — no hardcoded offsets
 - Weather refreshes every 5 minutes, clock checks every second, NTP re-syncs every 24 hours (and whenever the UTC offset changes, e.g. DST)
 - Self-recovering: reconnects Wi-Fi, retries failed fetches every 30s, resets after ~5 min of failures, and a hardware watchdog resets the board if it hangs
+- Works with CircuitPython's [web workflow](https://docs.circuitpython.org/en/latest/docs/workflows.html#web): set `CIRCUITPY_WEB_API_PASSWORD` in `settings.toml` to get a browser console/file editor at `http://<board-ip>/`. After a watchdog reset the web workflow doesn't start, so `code.py` does one extra software reset to bring it back
 
 ## Display Layout
 

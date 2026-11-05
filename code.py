@@ -2,6 +2,13 @@ import time
 import os
 import gc
 import microcontroller
+
+# After a watchdog reset, CircuitPython's web workflow (the browser-based
+# console/file editor) doesn't start. One clean software reset brings it back.
+if microcontroller.cpu.reset_reason == microcontroller.ResetReason.WATCHDOG:
+    print("Recovered from watchdog reset; doing a clean reset for web workflow")
+    microcontroller.reset()
+
 import terminalio
 import wifi
 import rtc
